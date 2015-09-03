@@ -10,7 +10,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
@@ -19,6 +18,8 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG  = "MainActivity";
 
     private Button mExpandSearchViewButton;
+    private SearchView mSearchView;
+    private SearchView.SearchAutoComplete mSearchAutoComplete;
 
     private MenuItem mMenuItemSearch;
     private static final int MENU_ITEM_SEARCH_ID = 1000;
@@ -49,7 +50,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void expandSearchView() {
         Toast.makeText(this, "Expanding the search view", Toast.LENGTH_SHORT).show();
-        searchByKeyword();
+        mMenuItemSearch.expandActionView();
+        mSearchAutoComplete.setText("Search expanded by external button");
     }
 
     // Action bar
@@ -61,6 +63,7 @@ public class MainActivity extends AppCompatActivity {
                 .setIcon(R.drawable.ic_action_search)
                 .setActionView(R.layout.search_layout);
         mMenuItemSearch.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM | MenuItem.SHOW_AS_ACTION_COLLAPSE_ACTION_VIEW);
+        setUpSearchView();
         return true;
     }
 
@@ -68,20 +71,29 @@ public class MainActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case MENU_ITEM_SEARCH_ID:
-                searchByKeyword();
+                mMenuItemSearch.expandActionView();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
 
-    private void searchByKeyword() {
-        final SearchView searchActionView = (SearchView) MenuItemCompat.getActionView(mMenuItemSearch);
-        searchActionView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+    private void setUpSearchView() {
+        // The precondition is that mMenuItemSearch is not null
+        if (mMenuItemSearch == null) {
+            Log.e(TAG, "Trying to set up search view when the menu item search is null");
+            return;
+        }
+
+        mSearchView = (SearchView) MenuItemCompat.getActionView(mMenuItemSearch);
+        mSearchAutoComplete = (SearchView.SearchAutoComplete)mSearchView.findViewById(R.id.search_src_text);
+        ImageView closeButton = (ImageView) mSearchView.findViewById(R.id.search_close_btn);
+
+        mSearchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String keyword) {
                 Log.v(TAG, "Searching the videos with the keyword " + keyword);
-                searchActionView.clearFocus();
+                mSearchView.clearFocus();
                 return true;
             }
 
@@ -91,15 +103,13 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        ImageView closeButton = (ImageView) searchActionView.findViewById(R.id.search_close_btn);
         closeButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Log.v(TAG, "The search has been cancelled. Requesting the list of all the videos to the module");
-                EditText et = (EditText) findViewById(R.id.search_src_text);
-                et.setText("");
-                searchActionView.setQuery("", false);
-                searchActionView.onActionViewCollapsed();
+                mSearchAutoComplete.setText("");
+                mSearchView.setQuery("", false);
+                mSearchView.onActionViewCollapsed();
                 mMenuItemSearch.collapseActionView();
             }
         });
@@ -112,14 +122,10 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public boolean onMenuItemActionCollapse(MenuItem item) {
-                searchActionView.setQuery("", false);
-                searchActionView.onActionViewCollapsed();
+                mSearchView.setQuery("", false);
+                mSearchView.onActionViewCollapsed();
                 return true;
             }
         });
-
-        SearchView.SearchAutoComplete searchAutoComplete = (SearchView.SearchAutoComplete)searchActionView.findViewById(R.id.search_src_text);
-        searchAutoComplete.setText("Dubai");
-
     }
 }
